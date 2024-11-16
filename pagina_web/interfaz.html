@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Control de LED y Motor</title>
+    <style>
+        body {
+            background-image: url('images/sc.jpg');
+            background-size: cover;
+            color: rgb(255, 255, 255);
+        }
+        .container {
+            margin-top: 50px;
+            text-align: center;
+        }
+        .control-panel {
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .btn-toggle {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+        }
+        .btn-on {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-off {
+            background-color: #dc3545;
+            color: white;
+        }
+        .status {
+            margin-top: 15px;
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+        .navigation {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Control de LED y Motor</h1>
+        <button id="logoutBtn" class="btn btn-danger logout-btn">Cerrar sesión</button>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="control-panel text-center">
+                    <h3>Control del LED</h3>
+                    <img src="images/led.jpg" alt="LED" style="width: 100px; height: auto;">
+                    <button id="encender" class="btn btn-toggle btn-on">Encender LED</button>
+                    <button id="apagar" class="btn btn-toggle btn-off">Apagar LED</button>
+                    <div id="status-led" class="status">Estado: Apagado</div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="control-panel text-center">
+                    <h3>Control del Motor</h3>
+                    <img src="images/motordc.jpg" alt="Motor" style="width: 100px; height: auto;">
+                    <button id="encenderMotor" class="btn btn-toggle btn-on">Encender Motor</button>
+                    <button id="apagarMotor" class="btn btn-toggle btn-off">Apagar Motor</button>
+                    <div id="status-motor" class="status">Estado: Apagado</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="control-panel text-center">
+                        <h3>Mostrar Usuarios</h3>
+                        <button class="btn btn-primary" onclick="window.location.href='usuarios.html'">Ver Usuarios</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="control-panel text-center">
+                        <h3>Mostrar Lecturas</h3>
+                        <button class="btn btn-primary" onclick="window.location.href='lecturas.html'">Ver Lecturas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Obtener el token JWT del almacenamiento local
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+            alert('No se encontró el token. Por favor, inicie sesión nuevamente.');
+            window.location.href = 'login.html'; // Redirige a la página de login
+        }
+        
+        const idUsuario = localStorage.getItem('id_usuario');
+        if (!idUsuario) {
+            alert('Usuario no encontrado. Por favor inicie sesión nuevamente.');
+            window.location.href = 'login.html';
+        }
+        
+       // Función para cerrar sesión
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    // Hacer la solicitud POST a la API de logout
+    fetch('https://api-control-motor.onrender.com/api/logout', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') // Enviar el token de autenticación
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message === "Cierre de sesión exitoso") {
+            alert("Sesión cerrada correctamente.");
+            
+            // Eliminar el token del localStorage
+            localStorage.removeItem('jwt_token'); // Borra el token
+            localStorage.removeItem('id_usuario'); // Borra el ID de usuario (si es necesario)
+            
+            // Redirigir a la página de login
+            window.location.href = 'login.html'; // Redirige al login
+        } else {
+            alert("Error al cerrar sesión.");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+});
+
+        
+        document.getElementById('encender').addEventListener('click', function() {
+            controlarLed('on');
+            document.getElementById('status-led').innerText = 'Estado: Encendido';
+        });
+
+        document.getElementById('apagar').addEventListener('click', function() {
+            controlarLed('off');
+            document.getElementById('status-led').innerText = 'Estado: Apagado';
+        });
+
+        document.getElementById('encenderMotor').addEventListener('click', function() {
+            controlarMotor('on');
+            document.getElementById('status-motor').innerText = 'Estado: Encendido';
+        });
+
+        document.getElementById('apagarMotor').addEventListener('click', function() {
+            controlarMotor('off');
+            document.getElementById('status-motor').innerText = 'Estado: Apagado';
+        });
+
+        function controlarLed(state) {
+            fetch('https://api-control-motor.onrender.com/api/controlar_led', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ state: state })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error('Error: ' + err.error);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message || 'Estado actual: ' + data.estado_actual);
+            })
+            .catch(error => {
+                console.error('Error al controlar el LED:', error.message);
+            });
+        }
+
+        function controlarMotor(state) {
+            fetch('https://api-control-motor.onrender.com/api/controlar_motor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ state: state })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error('Error: ' + err.error);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message || 'Estado actual: ' + data.estado_actual);
+            })
+            .catch(error => {
+                console.error('Error al controlar el LED:', error.message);
+            });
+        }
+
+    </script>
+</body>
+</html>

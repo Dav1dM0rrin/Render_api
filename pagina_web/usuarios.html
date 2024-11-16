@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+    
+    <title>Lista de Usuarios</title>
+    <style>
+        body {
+            background-image: url('images/sc.jpg');
+            background-size: cover;
+            color: rgb(255, 255, 255);
+        }
+        .container {
+            margin-top: 50px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+        table {
+            margin-top: 20px;
+            background-color: rgb(255, 255, 255);
+            border-radius: 8px;
+        }
+        th, td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Lista de Usuarios</h1>
+        <button id="logoutBtn" class="btn btn-danger logout-btn">Cerrar sesión</button>
+        <table id="usuarios-table" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                </tr>
+            </thead>
+            <tbody id="usuarios-table-body">
+                <!-- Aquí se llenarán los usuarios -->
+            </tbody>
+        </table>
+        <button class="btn btn-primary" onclick="window.location.href='interfaz.html'">Regresar</button>
+    </div>
+
+    <!-- jQuery (necesario para DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        // Función para cerrar sesión
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    // Hacer la solicitud POST a la API de logout
+    fetch('https://api-control-motor.onrender.com/api/logout', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') // Enviar el token de autenticación
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message === "Cierre de sesión exitoso") {
+            alert("Sesión cerrada correctamente.");
+            
+            // Eliminar el token del localStorage
+            localStorage.removeItem('jwt_token'); // Borra el token
+            localStorage.removeItem('id_usuario'); // Borra el ID de usuario (si es necesario)
+            
+            // Redirigir a la página de login
+            window.location.href = 'login.html'; // Redirige al login
+        } else {
+            alert("Error al cerrar sesión.");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+});
+
+
+        // Hacer la solicitud a la API de usuarios
+        fetch('https://api-control-motor.onrender.com/api/usuarios', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') // Enviar el token de autenticación
+        }
+    })
+        .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al cargar usuarios.');
+                }
+                return response.json(); // Convertir la respuesta a JSON
+            })
+            .then(usuarios => {
+                const tableBody = document.getElementById('usuarios-table-body');
+                usuarios.forEach(usuario => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${usuario.id_usuario}</td>
+                        <td>${usuario.usuario}</td>
+                        <td>${usuario.nombre || 'N/A'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Inicializar DataTables después de llenar la tabla
+                $('#usuarios-table').DataTable({
+                    "language": {
+                        "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json"
+                    }
+                });
+            })
+            .catch(error => {
+                console.error(error.message);
+                alert('Error: ' + error.message);
+            });
+    </script>
+
+</body>
+</html>
